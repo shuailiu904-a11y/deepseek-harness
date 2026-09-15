@@ -1,0 +1,38 @@
+name: Build Desktop (Windows, unsigned)
+
+on:
+  workflow_dispatch:   # 手动触发
+  push:
+    branches: [master, main]   # 每次同步官方更新后自动构建（首次创建本文件也会触发）
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package unsigned Windows desktop build
+        env:
+          DSH_DESKTOP_APP_ID: com.deepseek.harness.local
+        run: pnpm run package:desktop:win:x64:unsigned
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-win-x64-unsigned
+          path: apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/*.exe
+          if-no-files-found: error
+          retention-days: 14
